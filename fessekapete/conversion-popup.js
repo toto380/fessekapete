@@ -7,8 +7,6 @@ function initConversionPopup() {
             title: "Protégez votre budget publicitaire 🛡️",
             text: "Profitez de notre Audit de Fuite de Données. Une sécurité absolue : si nous ne trouvons aucune déperdition de données qui impacte vos campagnes, nous vous remboursons intégralement !",
             btn: "Profiter de l'audit",
-            link: "Voir nos études de cas (ils pensaient aussi être à l'abri...)",
-            url: "etude-de-cas.html",
             mention: "*sous conditions",
             trigger: "Offre du moment 🎁"
         },
@@ -16,8 +14,6 @@ function initConversionPopup() {
             title: "Protect your ad budget 🛡️",
             text: "Take advantage of our Data Leak Audit. Absolute security: if we find no data loss impacting your campaigns, we will refund you completely!",
             btn: "Claim my audit",
-            link: "See our case studies (they thought they were safe too...)",
-            url: "case-study.html",
             mention: "*terms and conditions apply",
             trigger: "Special Offer 🎁"
         }
@@ -37,7 +33,6 @@ function initConversionPopup() {
         <h3 class="conversion-popup-title">${t.title}</h3>
         <p class="conversion-popup-text">${t.text}</p>
         <button class="conversion-popup-btn btn-premium" onclick="document.getElementById('contact').scrollIntoView({behavior: 'smooth'});">${t.btn}</button>
-        <a href="${t.url}" class="conversion-popup-link">${t.link}</a>
         <div class="conversion-popup-mention">${t.mention}</div>
     `;
     
