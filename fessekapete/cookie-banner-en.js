@@ -1,7 +1,7 @@
 /* ============================================================
-   STRATADS — COOKIE BANNER (Rocket SA-26)
+   STRATADS — COOKIE BANNER (Rocket SA-26) — ENGLISH VERSION
    Self-contained: injects CSS + HTML + logic.
-   Include on indexable pages only.
+   Include on /en/ pages only.
    ============================================================ */
 (function () {
     // Skip if already dismissed this session
@@ -56,7 +56,7 @@
     ].join('\n');
     document.head.appendChild(css);
 
-    /* ── HTML ── */
+    /* ── HTML (English) ── */
     var banner = document.createElement('div');
     banner.id = 'cookie-banner';
     banner.className = 'cookie-banner';
@@ -72,10 +72,10 @@
         '  <div class="rk-fm" id="rk-fm"><div class="rk-fo"></div><div class="rk-fi"></div></div>',
         '  <div class="rk-sm" id="rk-sm"><span></span><span></span><span></span></div>',
         '</div>',
-        '<p>Nous récoltons des cookies pour améliorer l\'expérience utilisateur.</p>',
+        '<p>We use cookies to enhance your browsing experience.</p>',
         '<div class="cb-btns">',
-        '  <button class="cb-accept" id="cb-accept">Accepter</button>',
-        '  <button class="cb-refuse" id="cb-refuse">Refuser</button>',
+        '  <button class="cb-accept" id="cb-accept">Accept</button>',
+        '  <button class="cb-refuse" id="cb-refuse">Decline</button>',
         '</div>'
     ].join('');
     document.body.appendChild(banner);
