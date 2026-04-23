@@ -6,23 +6,22 @@
 # L'ordre est CRUCIAL : du plus spécifique au plus général.
 # ------------------------------------------------------------------------------
 
-# Gère le chargement de GTM (ex: gtm.js)
+# Gère le chargement de GTM (container.js remplace gtm.js)
 [[edge_functions]]
   function = "wv-tm"
-  path = "/assets/lib/web-vitals/gtm.js"
+  path = "/assets/lib/web-vitals/container.js"
 
-# Gère le chargeur GA4 (ex: gtag.js)
+# Gère le chargeur GA4 (loader.js remplace gtag.js)
 [[edge_functions]]
   function = "wv-loader"
-  path = "/assets/lib/web-vitals/gtag.js"
+  path = "/assets/lib/web-vitals/loader.js"
 
-# Gère l'envoi des données (collect)
+# Gère l'envoi des données (telemetry remplace g/collect)
 [[edge_functions]]
   function = "wv-collect"
-  path = "/assets/lib/web-vitals/g/collect"
+  path = "/assets/lib/web-vitals/telemetry"
 
 # LE "CATCH-ALL" : Intercepte tout le reste (core/t.js, modules, etc.)
-# Empêche la 404 et le mauvais type MIME.
 [[edge_functions]]
   function = "wv-proxy"
   path = "/assets/lib/web-vitals/*"
@@ -39,7 +38,6 @@
     X-Content-Type-Options = "nosniff"
     Referrer-Policy = "strict-origin-when-cross-origin"
     Permissions-Policy = "geolocation=(), microphone=(), camera=()"
-    # CSP mise à jour pour autoriser le tracking proxifié et le Service Worker
     Content-Security-Policy = """
       default-src 'self';
       worker-src 'self' blob:;
@@ -62,16 +60,16 @@
 # 3. CACHE & MIME TYPES SPÉCIFIQUES
 # ------------------------------------------------------------------------------
 
-# Cache pour les scripts JS proxifiés
+# Cache pour tous les scripts du dossier de camouflage
 [[headers]]
   for = "/assets/lib/web-vitals/*"
   [headers.values]
     Cache-Control = "public, max-age=3600, must-revalidate"
     Content-Type = "application/javascript; charset=utf-8"
 
-# Pas de cache pour la collecte de données
+# Pas de cache pour l'endpoint de données anonymisé
 [[headers]]
-  for = "/assets/lib/web-vitals/g/collect"
+  for = "/assets/lib/web-vitals/telemetry"
   [headers.values]
     Cache-Control = "no-store, no-cache, must-revalidate"
 
