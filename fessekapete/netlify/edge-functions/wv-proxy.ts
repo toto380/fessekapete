@@ -2,50 +2,49 @@ import { Context } from "https://edge.netlify.com";
 
 export default async function (request: Request, context: Context) {
   const incoming = new URL(request.url);
+  const PROXY_PATH = "/assets/lib/web-vitals";
   
-  // 1. On extrait le sous-chemin proprement
-  const proxyPath = "/assets/lib/web-vitals";
-  let subPath = incoming.pathname.replace(proxyPath, "");
-  
-  // 2. Sécurité : on s'assure que subPath commence par un seul /
+  // 1. Extraction du chemin (ex: /core/t.js)
+  let subPath = incoming.pathname.replace(PROXY_PATH, "");
   if (!subPath.startsWith("/")) subPath = "/" + subPath;
 
-  // 3. Détermination de la cible (Google pour les scripts core, sGTM pour le reste)
   const SGTM_URL = Deno.env.get("WV_SGTM_URL") || "https://metrics.stratads.fr";
-  const targetHost = subPath.includes("/core/") 
-    ? "https://www.googletagmanager.com" 
-    : SGTM_URL;
 
-  // On nettoie les éventuels doubles slashes à la jonction
-  const finalTarget = `${targetHost.replace(/\/$/, "")}${subPath}${incoming.search}`;
+  // 2. Liste des cibles possibles (sGTM puis Google GTM en secours)
+  const targets = [
+    `${SGTM_URL.replace(/\/$/, "")}${subPath}${incoming.search}`,
+    `https://www.googletagmanager.com${subPath}${incoming.search}`
+  ];
 
-  try {
-    const upstream = await fetch(finalTarget, {
-      headers: {
-        "User-Agent": request.headers.get("User-Agent") ?? "",
-        "Accept": request.headers.get("Accept") ?? "*/*",
-      },
-    });
+  for (const target of targets) {
+    try {
+      const response = await fetch(target, {
+        headers: { 
+          "User-Agent": request.headers.get("User-Agent") || "",
+          "Accept": "*/*"
+        }
+      });
 
-    if (!upstream.ok) {
-      console.error(`Upstream error ${upstream.status} for ${finalTarget}`);
-      // Si sGTM renvoie 404, on tente un dernier fallback sur Google
-      if (upstream.status === 404 && targetHost !== "https://www.googletagmanager.com") {
-        const fallback = `https://www.googletagmanager.com${subPath}${incoming.search}`;
-        const fbRes = await fetch(fallback);
-        return fbRes;
+      if (response.ok) {
+        // 3. Succès : On récupère le contenu et on force le type MIME
+        const body = await response.arrayBuffer();
+        return new Response(body, {
+          status: 200,
+          headers: {
+            "Content-Type": "application/javascript; charset=utf-8",
+            "Cache-Control": "public, max-age=3600",
+            "Access-Control-Allow-Origin": "*"
+          }
+        });
       }
+    } catch (e) {
+      // On ignore l'erreur et on tente la cible suivante
     }
-
-    return new Response(upstream.body, {
-      status: upstream.status,
-      headers: {
-        "Content-Type": "application/javascript; charset=utf-8",
-        "Cache-Control": "public, max-age=3600",
-        "Access-Control-Allow-Origin": "*",
-      },
-    });
-  } catch (e) {
-    return new Response(`// Proxy error: ${e.message}`, { status: 502 });
   }
+
+  // 4. Si aucune cible ne répond
+  return new Response("// Stealth Proxy: File not found", { 
+    status: 404,
+    headers: { "Content-Type": "application/javascript" } 
+  });
 }
