@@ -1,11 +1,12 @@
 import { Context } from "https://edge.netlify.com";
 
 export default async function (request: Request, context: Context) {
-  const SGTM_URL = Deno.env.get("WV_SGTM_URL") || "https://metrics.stratads.fr";
+  const SGTM_URL = Deno.env.get("WV_SGTM_URL")?.replace(/\/$/, "") || "https://metrics.stratads.fr";
   const MEASUREMENT_ID = Deno.env.get("WV_MEASUREMENT_ID") || "G-S30RM9RR91";
 
   const incoming = new URL(request.url);
-  const target = `${SGTM_URL.replace(/\/$/, "")}/g/collect${incoming.search}`;
+  // On s'assure que la cible est bien le point de collecte sGTM
+  const target = `${SGTM_URL}/g/collect${incoming.search}`;
 
   // 1. Headers à relayer vers sGTM
   const headers = new Headers();
@@ -15,16 +16,15 @@ export default async function (request: Request, context: Context) {
     if (v) headers.set(h, v);
   }
 
-  // 2. INJECTION DU DEBUG HEADER
-  // On récupère le header envoyé par le navigateur (via ton script stealth)
-  const previewHeader = request.headers.get("x-gtm-server-preview");
-  if (previewHeader) {
-    headers.set("X-Gtm-Server-Preview", previewHeader);
-  }
+  // 2. INJECTION DU DEBUG HEADER EN DUR
+  // On force ton tag de preview pour que chaque événement apparaisse dans la console sGTM
+  headers.set("X-Gtm-Server-Preview", "ZW52LTV8N0txdUxsMUE2TUFmT3RlRlhpQkJsQXwxOWRiYjllNGM3MjYxNTQ4OTEwODg=");
 
-  // 3. IP Réelle (crucial pour GA4)
+  // 3. IP Réelle (Crucial pour éviter l'erreur de région et pour GA4)
   const clientIP = (context as any).ip || request.headers.get("x-nf-client-connection-ip") || "";
-  if (clientIP) headers.set("X-Forwarded-For", clientIP);
+  if (clientIP) {
+    headers.set("X-Forwarded-For", clientIP);
+  }
 
   // 4. Forward vers sGTM
   let upstream: Response;
@@ -32,15 +32,17 @@ export default async function (request: Request, context: Context) {
     upstream = await fetch(target, {
       method: request.method,
       headers: headers,
+      // On gère le body pour les requêtes POST (événements GA4)
       body: request.method === "GET" || request.method === "HEAD" ? null : request.body,
     });
-  } catch {
+  } catch (e) {
+    console.error(`Collect fetch error: ${e.message}`);
     return new Response("", { status: 204 });
   }
 
-  // ... (le reste de ton code pour les cookies _ga reste inchangé)
+  // 5. Retour de la réponse sGTM (inclut les cookies de debug en retour)
   return new Response(upstream.body, {
     status: upstream.status,
-    headers: upstream.headers, // On relaie aussi les headers de retour (pour le debug)
+    headers: upstream.headers,
   });
 }
