@@ -62,7 +62,10 @@ export default async function (request: Request, context: Context) {
   // 4) Hostname sans protocole → notre domaine first-party
   js = js.replaceAll("www.googletagmanager.com", "www.stratads.fr");
   js = js.replaceAll("www.google-analytics.com", "www.stratads.fr");
-
+  // 5) Fallback — domaines nus sans le préfixe www.
+  //    Pour les cas où le code sGTM fragmente "www." + "googletagmanager.com"
+  js = js.replaceAll("googletagmanager.com", "stratads.fr");
+  js = js.replaceAll("google-analytics.com", "stratads.fr");
   return new Response(js, {
     headers: {
       "Content-Type": "application/javascript; charset=utf-8",
