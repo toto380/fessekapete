@@ -1,15 +1,26 @@
-# --- SECTION 1 : CAMOUFLAGE PROFOND ---
+# --- SECTION 1 : CAMOUFLAGE DU TRACKING (DEEP STEALTH) ---
 
-# On déplace l'ID GTM du côté serveur de Netlify (invisible pour le navigateur)
+# Masquage du script GTM : on utilise un nom de police système comme alias
+# Le navigateur pense charger une font, mais Netlify appelle le GTM réel
 /assets/vfs_fonts.js  https://metrics.stratads.fr/gtm.js?id=GTM-T7K3PDSV  200!
 
-# On utilise un alias encore plus neutre pour la collecte
-# On intercepte les requêtes vers /assets/lib/web-vitals et on les route vers le serveur
+# Masquage de la collecte de données : on utilise un alias de librairie de performance
+# Adblock ne bloque jamais 'web-vitals' car c'est un outil de mesure de vitesse
 /assets/lib/web-vitals/* https://metrics.stratads.fr/:splat  200!
 
-# --- SECTION 2 : REDIRECTS DOMAINES & PAGES ---
+
+# --- SECTION 2 : REDIRECTS DE STRUCTURE ---
+
+# Pages spécifiques
 /growth         /index.html        301
 /conditions     /conditionsp.html  200
 
+# Forcer le WWW et le HTTPS (SEO & Sécurité)
 http://stratads.fr/* https://www.stratads.fr/:splat  301!
 https://stratads.fr/* https://www.stratads.fr/:splat  301!
+
+
+# --- SECTION 3 : GESTION DES ERREURS ---
+
+# Redirige les 404 vers l'accueil pour éviter les sorties de site
+/* /index.html  404
