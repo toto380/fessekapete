@@ -1,4 +1,4 @@
-/*! stealth-intercept.js — Version Renforcée */
+/*! stealth-intercept.js — Version Debug-Safe */
 (function(){
   'use strict';
   var FIRST_PARTY = location.origin;
@@ -7,15 +7,13 @@
   function rewrite(u){
     if (!u || typeof u !== 'string') return u;
     
-    // EXCEPTION : Si l'URL contient "DUMMY" ou vient de Tag Assistant, on ne camoufle PAS.
-    // Cela permet aux outils de debug de Google de fonctionner sans polluer ton sGTM.
+    // 1. On ignore les requêtes de debug/DUMMY pour éviter la 400 sur sGTM
     if (u.indexOf('id=DUMMY') !== -1 || u.indexOf('tagassist') !== -1) return u;
 
     if (u.indexOf('google') === -1 && u.indexOf('doubleclick') === -1) return u;
 
     var path = '/assets/lib/web-vitals';
     
-    // Mapping vers tes noms anonymes (container, loader, telemetry)
     if (u.indexOf('gtm.js') !== -1) return u.replace(HOST_RE, FIRST_PARTY + path).replace('gtm.js', 'container.js');
     if (u.indexOf('gtag/js') !== -1) return u.replace(HOST_RE, FIRST_PARTY + path).replace('gtag/js', 'loader.js');
     if (u.indexOf('/g/collect') !== -1) return u.replace(HOST_RE, FIRST_PARTY + path).replace('/g/collect', '/telemetry');
@@ -30,17 +28,19 @@
   if (_fetch){
     window.fetch = function(input, init){
       try {
+        var url = typeof input === 'string' ? input : (input && input.url ? input.url : '');
+        var isProxied = url.indexOf(FIRST_PARTY + '/assets/lib/web-vitals') !== -1;
+
         if (typeof input === 'string') input = rewrite(input);
         else if (input && input.url) input = new Request(rewrite(input.url), input);
         
-        // Sécurité : on initialise init si absent pour injecter le header
-        init = init || {};
-        init.headers = init.headers || {};
-        
-        if (init.headers instanceof Headers) {
-          init.headers.set('x-gtm-server-preview', DEBUG_HEADER);
-        } else {
-          init.headers['x-gtm-server-preview'] = DEBUG_HEADER;
+        // SÉCURITÉ : On n'injecte le header que si la requête va vers NOTRE proxy
+        // Injecter un header custom vers Google direct provoque une erreur CORS/Failed to fetch
+        if (isProxied) {
+          init = init || {};
+          init.headers = init.headers || {};
+          if (init.headers instanceof Headers) init.headers.set('x-gtm-server-preview', DEBUG_HEADER);
+          else init.headers['x-gtm-server-preview'] = DEBUG_HEADER;
         }
       } catch(e){}
       return _fetch.call(this, input, init);
@@ -50,21 +50,29 @@
   // 2. XMLHttpRequest
   var _open = XMLHttpRequest.prototype.open;
   XMLHttpRequest.prototype.open = function(m, u){
-    try { arguments[1] = rewrite(u); } catch(e){}
-    var res = _open.apply(this, arguments);
-    try {
-      this.setRequestHeader('x-gtm-server-preview', DEBUG_HEADER);
+    try { 
+      var finalUrl = rewrite(u);
+      this._isProxied = finalUrl.indexOf(FIRST_PARTY + '/assets/lib/web-vitals') !== -1;
+      arguments[1] = finalUrl; 
     } catch(e){}
-    return res;
+    return _open.apply(this, arguments);
   };
 
-  // 3. sendBeacon
+  var _send = XMLHttpRequest.prototype.send;
+  XMLHttpRequest.prototype.send = function(b){
+    // On n'injecte le header que si c'est notre proxy
+    if (this._isProxied) {
+      try { this.setRequestHeader('x-gtm-server-preview', DEBUG_HEADER); } catch(e){}
+    }
+    return _send.apply(this, arguments);
+  };
+
+  // 3. sendBeacon, Patch DOM, MutationObserver (Le reste reste identique)
   if (navigator.sendBeacon){
     var _b = navigator.sendBeacon.bind(navigator);
     navigator.sendBeacon = function(u, d){ return _b(rewrite(u), d); };
   }
 
-  // 4. Patch des propriétés DOM (src, href)
   function patchProp(proto, prop){
     var d = Object.getOwnPropertyDescriptor(proto, prop);
     if (!d || !d.set) return;
@@ -79,14 +87,12 @@
   patchProp(HTMLLinkElement.prototype, 'href');
   patchProp(HTMLIFrameElement.prototype, 'src');
 
-  // 5. setAttribute
   var _setAttr = Element.prototype.setAttribute;
   Element.prototype.setAttribute = function(n, v){
     if (n === 'src' || n === 'href' || n === 'data-src') v = rewrite(v);
     return _setAttr.call(this, n, v);
   };
 
-  // 6. MutationObserver
   var mo = new MutationObserver(function(muts){
     for (var i=0; i<muts.length; i++){
       var m = muts[i];
@@ -104,6 +110,4 @@
     }
   });
   mo.observe(document.documentElement, { childList: true, subtree: true, attributes: true, attributeFilter: ['src','href'] });
-
-  window.__stealth = { rewrite: rewrite };
 })();
