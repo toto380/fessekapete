@@ -1,23 +1,12 @@
 [[headers]]
 for = "/*"
   [headers.values]
-
-  # Force HTTPS (HSTS)
   Strict-Transport-Security = "max-age=31536000; includeSubDomains; preload"
-
-  # Anti clickjacking
   X-Frame-Options = "DENY"
-
-  # Anti MIME sniffing
   X-Content-Type-Options = "nosniff"
-
-  # Referrer
   Referrer-Policy = "strict-origin-when-cross-origin"
-
-  # Permissions
   Permissions-Policy = "geolocation=(), microphone=(), camera=()"
 
-  # Content Security Policy
   Content-Security-Policy = """
     default-src 'self';
     base-uri 'self';
@@ -25,13 +14,14 @@ for = "/*"
     frame-ancestors 'none';
     object-src 'none';
 
-    img-src 'self' https: data:
-      https://www.google-analytics.com
-      https://www.googletagmanager.com;
+    # On autorise uniquement soi-même pour les images (le proxy gère le reste)
+    img-src 'self' data: https:;
 
     style-src 'self' 'unsafe-inline' https://fonts.googleapis.com;
     font-src 'self' https://fonts.gstatic.com data:;
 
+    # SCRIPT : On retire toute mention de google-analytics ou googletagmanager
+    # On garde juste les libs nécessaires à ton design
     script-src
       'self'
       'unsafe-inline'
@@ -39,41 +29,20 @@ for = "/*"
       https://cdn.tailwindcss.com
       https://cdnjs.cloudflare.com
       https://unpkg.com
-      https://threejs.org
-      https://fonts.googleapis.com
-      https://www.googletagmanager.com
-      https://www.google-analytics.com
-      https://tagmanager.google.com;
+      https://threejs.org;
 
-    script-src-elem
-      'self'
-      'unsafe-inline'
-      'unsafe-eval'
-      https://cdn.tailwindcss.com
-      https://cdnjs.cloudflare.com
-      https://unpkg.com
-      https://threejs.org
-      https://fonts.googleapis.com
-      https://www.googletagmanager.com
-      https://www.google-analytics.com
-      https://tagmanager.google.com;
-
+    # CONNECT : C'est ici que la magie opère. 
+    # On n'autorise QUE 'self' (ton domaine). 
+    # Comme la donnée part vers /assets/api/v1/sync, c'est considéré comme 'self'.
     connect-src
       'self'
       https://*.netlify.app
-      https://api.netlify.com
-      https://www.google-analytics.com
-      https://analytics.google.com
-      https://stats.g.doubleclick.net
-      https://region1.google-analytics.com
-      https://region1.analytics.google.com
-      https://www.googletagmanager.com;
+      https://api.netlify.com;
 
+    # FRAME : Uniquement pour ton mode preview si besoin, sinon reste en 'self'
     frame-src
       'self'
-      https://www.googletagmanager.com
       https://tagmanager.google.com;
 
-    # (optionnel) si tu veux éviter les erreurs mixed-content
     upgrade-insecure-requests;
   """
