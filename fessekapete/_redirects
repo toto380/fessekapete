@@ -1,31 +1,31 @@
-# 1. TRACKING STEALTH PROXY (Correction Erreur 400)
-# On définit l'URL exacte avec les paramètres pour GCP
-/assets/core.js  https://metrics.stratads.fr/gtm.js?id=GTM-T7K3PDSV  200!
-/assets/lib.js   https://metrics.stratads.fr/gtag/js?id=G-S30RM9RR91  200!
-
-# On garde le splat pour tout le reste (collecte de données /g/collect)
+# 1. TUNNEL DE DONNÉES (Server-Side Proxy)
+# Ce tunnel redirige toutes les données de tracking vers ton serveur GCP
+# Indétectable car il utilise ton propre domaine
 /assets/* https://metrics.stratads.fr/:splat  200!
 
-# 2. CANONICAL: https://www.stratads.fr
+# 2. REDIRECTIONS CANONIQUES (stratads.fr)
+# Force le HTTPS et le WWW pour le domaine principal
 http://stratads.fr/* https://www.stratads.fr/:splat  301!
-http://www.stratads.fr/* https://www.stratads.fr/:splat  301!
 https://stratads.fr/* https://www.stratads.fr/:splat  301!
+http://www.stratads.fr/* https://www.stratads.fr/:splat  301!
 
-# 3. REDIRECTIONS DOMAINES EXTERNES
-# stratads.eu
+# 3. REDIRECTIONS DOMAINES EXTERNES (.eu)
 http://stratads.eu/* https://www.stratads.fr/:splat  301!
-http://www.stratads.eu/* https://www.stratads.fr/:splat  301!
 https://stratads.eu/* https://www.stratads.fr/:splat  301!
+http://www.stratads.eu/* https://www.stratads.fr/:splat  301!
 https://www.stratads.eu/* https://www.stratads.fr/:splat  301!
 
-# stratads.agency
+# 4. REDIRECTIONS DOMAINES EXTERNES (.agency)
 http://stratads.agency/* https://www.stratads.fr/:splat  301!
-http://www.stratads.agency/* https://www.stratads.fr/:splat  301!
 https://stratads.agency/* https://www.stratads.fr/:splat  301!
+http://www.stratads.agency/* https://www.stratads.fr/:splat  301!
 https://www.stratads.agency/* https://www.stratads.fr/:splat  301!
 
-# 4. PAGES INTERNES & SEO
+# 5. PAGES INTERNES & SEO
+# Redirige l'ancien chemin /growth vers la nouvelle structure /fr/
 /growth         /fr/index.html        301
 /growth/        /fr/index.html        301
+
+# Pages de conditions (vers tes fichiers physiques)
 /conditions     /fr/conditionsp.html  200
 /conditions/    /fr/conditionsp.html  200
