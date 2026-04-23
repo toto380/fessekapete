@@ -1,10 +1,8 @@
-# 1. TRACKING STEALTH PROXY (Maquillage total)
-# Maquillage de GTM
-/assets/core.js     https://metrics.stratads.fr/gtm.js?id=GTM-T7K3PDSV  200!
-# Maquillage de GA4 (Le bloqueur bloquait /assets/gtag, donc on utilise /assets/lib.js)
-/assets/lib.js      https://metrics.stratads.fr/gtag/js?id=G-S30RM9RR91  200!
-# Tout le reste (collecte de données)
-/assets/* https://metrics.stratads.fr/:splat                   200!
+# 1. TRACKING STEALTH PROXY (Le bouclier)
+# On mappe des noms neutres vers les scripts réels de ton GCP
+/assets/core.js  https://metrics.stratads.fr/gtm.js?id=GTM-T7K3PDSV  200!
+/assets/lib.js   https://metrics.stratads.fr/gtag/js?id=G-S30RM9RR91  200!
+/assets/* https://metrics.stratads.fr/:splat                 200!
 
 # 2. CANONICAL: https://www.stratads.fr
 http://stratads.fr/* https://www.stratads.fr/:splat    301!
@@ -23,7 +21,7 @@ https://stratads.agency/* https://www.stratads.fr/:splat    301!
 https://www.stratads.agency/* https://www.stratads.fr/:splat    301!
 
 # 4. PAGES INTERNES
-/growth         /growth.html        200
-/growth/        /growth.html        200
-/conditions     /conditionsp.html    200
-/conditions/    /conditionsp.html    200
+/growth         /fr/index.html      301
+/growth/        /fr/index.html      301
+/conditions     /fr/conditionsp.html    200
+/conditions/    /fr/conditionsp.html    200
