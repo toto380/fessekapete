@@ -1,14 +1,14 @@
-// Dans /netlify/edge-functions/wv-proxy.ts
+// netlify/edge-functions/wv-proxy.ts
+import { Context } from "https://edge.netlify.com";
 
 export default async function (request: Request, context: Context) {
   const incoming = new URL(request.url);
   const subPath = incoming.pathname.replace("/assets/lib/web-vitals", "");
-
-  // Si le fichier est un composant "core", on le demande directement à Google
-  // car sGTM ne l'a souvent pas par défaut.
+  
+  // FORCE GOOGLE pour les fichiers /core/ car sGTM ne les a pas toujours
   const targetHost = subPath.includes("/core/") 
     ? "https://www.googletagmanager.com" 
-    : Deno.env.get("WV_SGTM_URL");
+    : "https://metrics.stratads.fr";
 
   const target = `${targetHost}${subPath}${incoming.search}`;
 
