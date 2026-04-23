@@ -6,7 +6,7 @@ export default async function (request: Request, context: Context) {
   let subPath = incoming.pathname.replace(PROXY_PATH, "");
   if (!subPath.startsWith("/")) subPath = "/" + subPath;
 
-  const SGTM_URL = Deno.env.get("WV_SGTM_URL")?.replace(/\/$/, "") || "https://metrics.stratads.fr";
+  const SGTM_URL = Deno.env.get("WV_GTM_SERVER_URL")?.replace(/\/$/, "") || "https://metrics.stratads.fr";
 
   const headers = new Headers();
   for (const [key, value] of request.headers.entries()) {
@@ -28,6 +28,6 @@ export default async function (request: Request, context: Context) {
       headers: upstream.headers
     });
   } catch {
-    return new Response("// Stealth fallback", { status: 200, headers: { "Content-Type": "application/javascript" } });
+    return new Response("// fallback", { status: 200, headers: { "Content-Type": "application/javascript" } });
   }
 }
