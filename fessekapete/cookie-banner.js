@@ -107,7 +107,6 @@
 
         // Tunnel furtif : alias web-vitals
         gtag('config', 'G-S30RM9RR91', {
-            'transport_url': '/assets/lib/web-vitals/core/c',
             'update': true
         });
 
@@ -129,7 +128,6 @@
 
         // Même en refus, on informe le serveur via le tunnel furtif pour la modélisation
         gtag('config', 'G-S30RM9RR91', {
-            'transport_url': '/assets/lib/web-vitals/core/c',
             'update': true
         });
 
