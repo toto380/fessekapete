@@ -14,32 +14,38 @@ for = "/*"
     frame-ancestors 'none';
     object-src 'none';
 
-    # On autorise uniquement soi-même pour les images (le proxy gère le reste)
-    img-src 'self' data: https:;
+    # img-src : On autorise 'self', les data: (pour les icones) et les logos externes (Wikimedia)
+    img-src 'self' data: https: https://upload.wikimedia.org;
 
+    # style-src : On autorise les styles inline pour tes animations
     style-src 'self' 'unsafe-inline' https://fonts.googleapis.com;
+    
     font-src 'self' https://fonts.gstatic.com data:;
 
-    # SCRIPT : On retire toute mention de google-analytics ou googletagmanager
-    # On garde juste les libs nécessaires à ton design
+    # script-src : C'est ici qu'on débloque Three.js et tes scripts inline
+    # 'unsafe-inline' est nécessaire pour tes scripts de tracking et d'init
     script-src
       'self'
       'unsafe-inline'
       'unsafe-eval'
-      https://cdn.tailwindcss.com
       https://cdnjs.cloudflare.com
+      https://cdn.tailwindcss.com
       https://unpkg.com
       https://threejs.org;
 
-    # CONNECT : C'est ici que la magie opère. 
-    # On n'autorise QUE 'self' (ton domaine). 
-    # Comme la donnée part vers /assets/api/v1/sync, c'est considéré comme 'self'.
+    # script-src-elem : Obligatoire pour certains navigateurs
+    script-src-elem
+      'self'
+      'unsafe-inline'
+      https://cdnjs.cloudflare.com
+      https://cdn.tailwindcss.com;
+
+    # connect-src : On garde 'self' pour le tracking furtif (via /assets/api/v1/sync)
     connect-src
       'self'
       https://*.netlify.app
       https://api.netlify.com;
 
-    # FRAME : Uniquement pour ton mode preview si besoin, sinon reste en 'self'
     frame-src
       'self'
       https://tagmanager.google.com;
