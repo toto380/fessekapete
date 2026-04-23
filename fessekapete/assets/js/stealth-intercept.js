@@ -2,16 +2,20 @@
 (function(){
   'use strict';
   var FIRST_PARTY = location.origin;
-  // Regex étendue pour attraper plus de variantes
   var HOST_RE = /https?:\/\/(www\.|region1\.|ssl\.|stats\.)?(google-?(tag)?manager|google-analytics|doubleclick)\.(com|net)/gi;
 
   function rewrite(u){
     if (!u || typeof u !== 'string') return u;
+    
+    // EXCEPTION : Si l'URL contient "DUMMY" ou vient de Tag Assistant, on ne camoufle PAS.
+    // Cela permet aux outils de debug de Google de fonctionner sans polluer ton sGTM.
+    if (u.indexOf('id=DUMMY') !== -1 || u.indexOf('tagassist') !== -1) return u;
+
     if (u.indexOf('google') === -1 && u.indexOf('doubleclick') === -1) return u;
 
-    // Remplacement spécifique pour les scripts core afin d'éviter les signatures connues
     var path = '/assets/lib/web-vitals';
     
+    // Mapping vers tes noms anonymes (container, loader, telemetry)
     if (u.indexOf('gtm.js') !== -1) return u.replace(HOST_RE, FIRST_PARTY + path).replace('gtm.js', 'container.js');
     if (u.indexOf('gtag/js') !== -1) return u.replace(HOST_RE, FIRST_PARTY + path).replace('gtag/js', 'loader.js');
     if (u.indexOf('/g/collect') !== -1) return u.replace(HOST_RE, FIRST_PARTY + path).replace('/g/collect', '/telemetry');
@@ -19,10 +23,9 @@
     return u.replace(HOST_RE, FIRST_PARTY + path);
   }
 
-  // Injection forcée du header de Debug pour sGTM
   var DEBUG_HEADER = "ZW52LTV8N0txdUxsMUE2TUFmT3RlRlhpQkJsQXwxOWRiYjllNGM3MjYxNTQ4OTEwODg=";
 
-  // 1. fetch (avec support Header Debug)
+  // 1. fetch
   var _fetch = window.fetch;
   if (_fetch){
     window.fetch = function(input, init){
@@ -30,10 +33,14 @@
         if (typeof input === 'string') input = rewrite(input);
         else if (input && input.url) input = new Request(rewrite(input.url), input);
         
-        // On s'assure que le header de debug est présent
-        if (init && init.headers) {
-          if (init.headers instanceof Headers) init.headers.set('x-gtm-server-preview', DEBUG_HEADER);
-          else init.headers['x-gtm-server-preview'] = DEBUG_HEADER;
+        // Sécurité : on initialise init si absent pour injecter le header
+        init = init || {};
+        init.headers = init.headers || {};
+        
+        if (init.headers instanceof Headers) {
+          init.headers.set('x-gtm-server-preview', DEBUG_HEADER);
+        } else {
+          init.headers['x-gtm-server-preview'] = DEBUG_HEADER;
         }
       } catch(e){}
       return _fetch.call(this, input, init);
@@ -43,12 +50,11 @@
   // 2. XMLHttpRequest
   var _open = XMLHttpRequest.prototype.open;
   XMLHttpRequest.prototype.open = function(m, u){
-    try { 
-      arguments[1] = rewrite(u);
-    } catch(e){}
+    try { arguments[1] = rewrite(u); } catch(e){}
     var res = _open.apply(this, arguments);
-    // Injection du header de debug après l'ouverture
-    this.setRequestHeader('x-gtm-server-preview', DEBUG_HEADER);
+    try {
+      this.setRequestHeader('x-gtm-server-preview', DEBUG_HEADER);
+    } catch(e){}
     return res;
   };
 
@@ -58,7 +64,7 @@
     navigator.sendBeacon = function(u, d){ return _b(rewrite(u), d); };
   }
 
-  // 4. Patch des propriétés DOM
+  // 4. Patch des propriétés DOM (src, href)
   function patchProp(proto, prop){
     var d = Object.getOwnPropertyDescriptor(proto, prop);
     if (!d || !d.set) return;
