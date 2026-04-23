@@ -14,17 +14,14 @@ for = "/*"
     frame-ancestors 'none';
     object-src 'none';
 
-    # 1. IMAGES : On autorise 'self' et les logos externes (Amazon via Wikimedia)
-    img-src 'self' data: https: https://upload.wikimedia.org;
+    # Autorise les images et les logos partenaires (Amazon, etc.)
+    img-src 'self' data: https:;
 
-    # 2. STYLES : Nécessaire pour Three.js et tes animations
+    # Autorise les polices et styles (essentiel pour le visuel)
     style-src 'self' 'unsafe-inline' https://fonts.googleapis.com;
-    
     font-src 'self' https://fonts.gstatic.com data:;
 
-    # 3. SCRIPTS : On débloque Three.js et tes fonctions de popup
-    # 'unsafe-inline' permet d'exécuter le code écrit dans tes HTML
-    # 'unsafe-eval' est parfois requis par Three.js
+    # DÉBLOQUE LES SCRIPTS (Three.js, Tailwind, etc.)
     script-src
       'self'
       'unsafe-inline'
@@ -34,15 +31,16 @@ for = "/*"
       https://unpkg.com
       https://threejs.org;
 
-    # 4. ÉLÉMENTS DE SCRIPT : Double sécurité pour le chargement des libs
+    # Indispensable pour que le navigateur accepte de charger les fichiers .js externes
     script-src-elem
       'self'
       'unsafe-inline'
       https://cdnjs.cloudflare.com
-      https://cdn.tailwindcss.com;
+      https://cdn.tailwindcss.com
+      https://unpkg.com;
 
-    # 5. CONNEXIONS : On autorise seulement 'self' (ton domaine)
-    # C'est ici que le camouflage du tracking fonctionne !
+    # TRACKING FURTIF : On autorise seulement 'self'
+    # Les données passent par ton domaine, donc elles sont autorisées ici.
     connect-src
       'self'
       https://*.netlify.app
