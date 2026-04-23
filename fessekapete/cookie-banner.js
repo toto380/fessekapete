@@ -108,7 +108,7 @@
 
         // Forcer la mise à jour vers le serveur proxy assets
         gtag('config', 'G-S30RM9RR91', {
-            'transport_url': 'https://www.stratads.fr/assets',
+            'transport_url': 'https://www.stratads.fr/assets/api/v1/sync',
             'update': true
         });
 
@@ -134,7 +134,7 @@
 
         // On informe le serveur du refus (essentiel pour la modélisation)
         gtag('config', 'G-S30RM9RR91', {
-            'transport_url': 'https://www.stratads.fr/assets',
+            'transport_url': 'https://www.stratads.fr/assets/api/v1/sync',
             'update': true
         });
 
