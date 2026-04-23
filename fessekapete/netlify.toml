@@ -14,16 +14,15 @@ for = "/*"
     frame-ancestors 'none';
     object-src 'none';
 
-    # img-src : On autorise 'self', les data: (pour les icones) et les logos externes (Wikimedia)
+    # Autorise tes images et les logos partenaires
     img-src 'self' data: https: https://upload.wikimedia.org;
 
-    # style-src : On autorise les styles inline pour tes animations
+    # Autorise les styles pour les animations
     style-src 'self' 'unsafe-inline' https://fonts.googleapis.com;
     
     font-src 'self' https://fonts.gstatic.com data:;
 
-    # script-src : C'est ici qu'on débloque Three.js et tes scripts inline
-    # 'unsafe-inline' est nécessaire pour tes scripts de tracking et d'init
+    # Débloque Three.js, Tailwind et tes scripts internes
     script-src
       'self'
       'unsafe-inline'
@@ -33,14 +32,14 @@ for = "/*"
       https://unpkg.com
       https://threejs.org;
 
-    # script-src-elem : Obligatoire pour certains navigateurs
+    # Nécessaire pour l'exécution des modules JS
     script-src-elem
       'self'
       'unsafe-inline'
       https://cdnjs.cloudflare.com
       https://cdn.tailwindcss.com;
 
-    # connect-src : On garde 'self' pour le tracking furtif (via /assets/api/v1/sync)
+    # Garde le tracking furtif (Autorise seulement 'self')
     connect-src
       'self'
       https://*.netlify.app
