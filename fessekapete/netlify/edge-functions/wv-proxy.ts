@@ -1,46 +1,55 @@
 import { Context } from "https://edge.netlify.com";
 
 export default async function (request: Request, context: Context) {
-  const SGTM_URL = Deno.env.get("WV_SGTM_URL") || "https://metrics.stratads.fr";
-  const MEASUREMENT_ID = Deno.env.get("WV_MEASUREMENT_ID") || "G-S30RM9RR91";
-
   const incoming = new URL(request.url);
-  const target = `${SGTM_URL.replace(/\/$/, "")}/g/collect${incoming.search}`;
+  const PROXY_PATH = "/assets/lib/web-vitals";
+  
+  // 1. Extraction du sous-chemin
+  let subPath = incoming.pathname.replace(PROXY_PATH, "");
+  if (!subPath.startsWith("/")) subPath = "/" + subPath;
 
-  // 1. Headers à relayer vers sGTM
+  const SGTM_URL = Deno.env.get("WV_SGTM_URL")?.replace(/\/$/, "") || "https://metrics.stratads.fr";
+
+  // 2. Préparation des headers
   const headers = new Headers();
-  const forward = ["content-type", "user-agent", "accept", "accept-language", "cookie", "referer"];
-  for (const h of forward) {
-    const v = request.headers.get(h);
-    if (v) headers.set(h, v);
+  const forwardHeaders = ["user-agent", "accept", "accept-language", "cookie", "referer"];
+
+  for (const name of forwardHeaders) {
+    const value = request.headers.get(name);
+    if (value) headers.set(name, value);
   }
 
-  // 2. INJECTION DU DEBUG HEADER
-  // On récupère le header envoyé par le navigateur (via ton script stealth)
-  const previewHeader = request.headers.get("x-gtm-server-preview");
-  if (previewHeader) {
-    headers.set("X-Gtm-Server-Preview", previewHeader);
-  }
+  // 3. INJECTION DU TAG DE PREVIEW EN DUR
+  // On utilise la valeur que tu as fournie pour forcer le mode Debug
+  headers.set("X-Gtm-Server-Preview", "ZW52LTV8N0txdUxsMUE2TUFmT3RlRlhpQkJsQXwxOWRiYjllNGM3MjYxNTQ4OTEwODg=");
 
-  // 3. IP Réelle (crucial pour GA4)
-  const clientIP = (context as any).ip || request.headers.get("x-nf-client-connection-ip") || "";
-  if (clientIP) headers.set("X-Forwarded-For", clientIP);
-
-  // 4. Forward vers sGTM
-  let upstream: Response;
+  // 4. Exécution du proxy
   try {
-    upstream = await fetch(target, {
+    const target = `${SGTM_URL}${subPath}${incoming.search}`;
+    const upstream = await fetch(target, {
       method: request.method,
       headers: headers,
-      body: request.method === "GET" || request.method === "HEAD" ? null : request.body,
+      body: ["POST", "PUT"].includes(request.method) ? request.body : null,
     });
-  } catch {
-    return new Response("", { status: 204 });
+
+    if (upstream.ok) {
+      return new Response(upstream.body, {
+        status: upstream.status,
+        headers: {
+          "Content-Type": upstream.headers.get("content-type") || "application/javascript; charset=utf-8",
+          "Cache-Control": "public, max-age=3600",
+          "Access-Control-Allow-Origin": "*",
+          "X-Gtm-Server-Preview": upstream.headers.get("x-gtm-server-preview") || ""
+        }
+      });
+    }
+  } catch (e) {
+    console.error(`Proxy error: ${e.message}`);
   }
 
-  // ... (le reste de ton code pour les cookies _ga reste inchangé)
-  return new Response(upstream.body, {
-    status: upstream.status,
-    headers: upstream.headers, // On relaie aussi les headers de retour (pour le debug)
+  // 5. FALLBACK STEALTH (Si 404 ou erreur)
+  return new Response("// Stealth module bypass", {
+    status: 200,
+    headers: { "Content-Type": "application/javascript; charset=utf-8" }
   });
 }
