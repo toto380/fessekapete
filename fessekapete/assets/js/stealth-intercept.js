@@ -1,113 +1,60 @@
-/*! stealth-intercept.js — Version Debug-Safe */
-(function(){
-  'use strict';
-  var FIRST_PARTY = location.origin;
-  var HOST_RE = /https?:\/\/(www\.|region1\.|ssl\.|stats\.)?(google-?(tag)?manager|google-analytics|doubleclick)\.(com|net)/gi;
+/**
+ * sw-stealth.js - Service Worker de Camouflage
+ * Gère l'interception et le bypass des flux de tracking
+ */
 
-  function rewrite(u){
-    if (!u || typeof u !== 'string') return u;
-    
-    // 1. On ignore les requêtes de debug/DUMMY pour éviter la 400 sur sGTM
-    if (u.indexOf('id=DUMMY') !== -1 || u.indexOf('tagassist') !== -1) return u;
+self.addEventListener('install', (event) => {
+  // Force l'activation immédiate du Service Worker
+  self.skipWaiting();
+});
 
-    if (u.indexOf('google') === -1 && u.indexOf('doubleclick') === -1) return u;
+self.addEventListener('activate', (event) => {
+  // Prend le contrôle des pages immédiatement
+  event.waitUntil(self.clients.claim());
+});
 
-    var path = '/assets/lib/web-vitals';
-    
-    if (u.indexOf('gtm.js') !== -1) return u.replace(HOST_RE, FIRST_PARTY + path).replace('gtm.js', 'container.js');
-    if (u.indexOf('gtag/js') !== -1) return u.replace(HOST_RE, FIRST_PARTY + path).replace('gtag/js', 'loader.js');
-    if (u.indexOf('/g/collect') !== -1) return u.replace(HOST_RE, FIRST_PARTY + path).replace('/g/collect', '/telemetry');
+self.addEventListener('fetch', (event) => {
+  const url = new URL(event.request.url);
 
-    return u.replace(HOST_RE, FIRST_PARTY + path);
+  // --- 1. EXCEPTION DE DEBUG (BYPASS) ---
+  // Si l'URL contient "DUMMY" ou "tagassist", on ignore la requête.
+  // Cela évite les erreurs CORS et les rejets 400 sur sGTM.
+  if (url.searchParams.has('id') && url.searchParams.get('id') === 'DUMMY' || url.href.includes('tagassist')) {
+    return; // Le navigateur gère la requête nativement via le réseau standard
   }
 
-  var DEBUG_HEADER = "ZW52LTV8N0txdUxsMUE2TUFmT3RlRlhpQkJsQXwxOWRiYjllNGM3MjYxNTQ4OTEwODg=";
+  // --- 2. LOGIQUE D'INTERCEPTION ---
+  // On n'intercepte que ce qui est lié à Google ou à notre chemin de camouflage
+  const isGoogle = url.hostname.includes('google') || url.hostname.includes('doubleclick');
+  const isProxy = url.pathname.includes('/assets/lib/web-vitals');
 
-  // 1. fetch
-  var _fetch = window.fetch;
-  if (_fetch){
-    window.fetch = function(input, init){
-      try {
-        var url = typeof input === 'string' ? input : (input && input.url ? input.url : '');
-        var isProxied = url.indexOf(FIRST_PARTY + '/assets/lib/web-vitals') !== -1;
-
-        if (typeof input === 'string') input = rewrite(input);
-        else if (input && input.url) input = new Request(rewrite(input.url), input);
-        
-        // SÉCURITÉ : On n'injecte le header que si la requête va vers NOTRE proxy
-        // Injecter un header custom vers Google direct provoque une erreur CORS/Failed to fetch
-        if (isProxied) {
-          init = init || {};
-          init.headers = init.headers || {};
-          if (init.headers instanceof Headers) init.headers.set('x-gtm-server-preview', DEBUG_HEADER);
-          else init.headers['x-gtm-server-preview'] = DEBUG_HEADER;
-        }
-      } catch(e){}
-      return _fetch.call(this, input, init);
-    };
+  if (isGoogle || isProxy) {
+    event.respondWith(
+      fetch(event.request)
+        .then((response) => {
+          // Si la réponse est OK (200-299), on la renvoie telle quelle
+          if (response.ok || response.status === 0) {
+            return response;
+          }
+          
+          // Si c'est une erreur 404/400 sur un script, on renvoie un script vide (Camouflage)
+          if (url.pathname.endsWith('.js') || url.href.includes('gtag/js') || url.href.includes('gtm.js')) {
+            return new Response('/* Stealth bypass - Resource active */', {
+              status: 200,
+              headers: { 'Content-Type': 'application/javascript' }
+            });
+          }
+          
+          return response;
+        })
+        .catch((err) => {
+          // Sécurité anti-crash : si le fetch échoue (Adblocker ou réseau), on simule une réussite
+          console.warn('Stealth SW interception bypass applied:', url.href);
+          return new Response('/* Stealth bypass - Network offline */', {
+            status: 200,
+            headers: { 'Content-Type': 'application/javascript' }
+          });
+        })
+    );
   }
-
-  // 2. XMLHttpRequest
-  var _open = XMLHttpRequest.prototype.open;
-  XMLHttpRequest.prototype.open = function(m, u){
-    try { 
-      var finalUrl = rewrite(u);
-      this._isProxied = finalUrl.indexOf(FIRST_PARTY + '/assets/lib/web-vitals') !== -1;
-      arguments[1] = finalUrl; 
-    } catch(e){}
-    return _open.apply(this, arguments);
-  };
-
-  var _send = XMLHttpRequest.prototype.send;
-  XMLHttpRequest.prototype.send = function(b){
-    // On n'injecte le header que si c'est notre proxy
-    if (this._isProxied) {
-      try { this.setRequestHeader('x-gtm-server-preview', DEBUG_HEADER); } catch(e){}
-    }
-    return _send.apply(this, arguments);
-  };
-
-  // 3. sendBeacon, Patch DOM, MutationObserver (Le reste reste identique)
-  if (navigator.sendBeacon){
-    var _b = navigator.sendBeacon.bind(navigator);
-    navigator.sendBeacon = function(u, d){ return _b(rewrite(u), d); };
-  }
-
-  function patchProp(proto, prop){
-    var d = Object.getOwnPropertyDescriptor(proto, prop);
-    if (!d || !d.set) return;
-    Object.defineProperty(proto, prop, {
-      configurable: true, enumerable: true,
-      get: d.get,
-      set: function(v){ d.set.call(this, rewrite(v)); }
-    });
-  }
-  patchProp(HTMLScriptElement.prototype, 'src');
-  patchProp(HTMLImageElement.prototype, 'src');
-  patchProp(HTMLLinkElement.prototype, 'href');
-  patchProp(HTMLIFrameElement.prototype, 'src');
-
-  var _setAttr = Element.prototype.setAttribute;
-  Element.prototype.setAttribute = function(n, v){
-    if (n === 'src' || n === 'href' || n === 'data-src') v = rewrite(v);
-    return _setAttr.call(this, n, v);
-  };
-
-  var mo = new MutationObserver(function(muts){
-    for (var i=0; i<muts.length; i++){
-      var m = muts[i];
-      for (var j=0; j<m.addedNodes.length; j++){
-        var n = m.addedNodes[j];
-        if (!n || n.nodeType !== 1) continue;
-        if (n.src) n.src = rewrite(n.src);
-        if (n.href) n.href = rewrite(n.href);
-        var kids = n.querySelectorAll ? n.querySelectorAll('[src],[href]') : [];
-        for (var k=0; k<kids.length; k++){
-          if (kids[k].src) kids[k].src = rewrite(kids[k].src);
-          if (kids[k].href) kids[k].href = rewrite(kids[k].href);
-        }
-      }
-    }
-  });
-  mo.observe(document.documentElement, { childList: true, subtree: true, attributes: true, attributeFilter: ['src','href'] });
-})();
+});
