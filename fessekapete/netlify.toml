@@ -7,29 +7,29 @@
     Permissions-Policy = "geolocation=(), microphone=(), camera=()"
     X-Frame-Options = "SAMEORIGIN"
 
-    # CSP Assouplie pour Three.js, Inline Scripts et Google Tag Manager
+    # CSP MAX-SOUPLESSE : Autorise tout ce qui est en HTTPS pour débloquer le site
     Content-Security-Policy = """
-      default-src 'self' https:;
+      default-src 'self' https: data: 'unsafe-inline' 'unsafe-eval';
       base-uri 'self';
       form-action 'self';
       object-src 'none';
       
-      # Autorise les styles inline (nécessaire pour Three.js et Tailwind inline)
-      style-src 'self' 'unsafe-inline' https://fonts.googleapis.com;
+      # Styles : On autorise tout en HTTPS + Inline pour éviter de casser le design
+      style-src 'self' 'unsafe-inline' https:;
       
-      # Autorise les scripts externes (cdnjs pour Three.js) et les scripts inline
-      script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdnjs.cloudflare.com https://cdn.tailwindcss.com https://unpkg.com https://threejs.org https://www.googletagmanager.com https://www.google-analytics.com https://tagmanager.google.com https://metrics.stratads.fr https://server-side-tagging-6qnp7pn64q-uc.a.run.app;
-      script-src-elem 'self' 'unsafe-inline' 'unsafe-eval' https://cdnjs.cloudflare.com https://cdn.tailwindcss.com https://unpkg.com https://threejs.org https://www.googletagmanager.com https://www.google-analytics.com https://tagmanager.google.com https://metrics.stratads.fr https://server-side-tagging-6qnp7pn64q-uc.a.run.app;
+      # Scripts : Autorisation large des sources connues + wildcard https pour la flexibilité
+      script-src 'self' 'unsafe-inline' 'unsafe-eval' https:;
+      script-src-elem 'self' 'unsafe-inline' 'unsafe-eval' https:;
       
-      # Connexions de données
-      connect-src 'self' https: https://*.netlify.app https://api.netlify.com https://www.google-analytics.com https://analytics.google.com https://stats.g.doubleclick.net https://metrics.stratads.fr https://server-side-tagging-6qnp7pn64q-uc.a.run.app;
+      # Connexions : Indispensable pour sGTM et les APIs externes
+      connect-src 'self' https: wss:;
       
       # Images et polices
-      img-src 'self' https: data:;
-      font-src 'self' https://fonts.gstatic.com data:;
+      img-src 'self' https: data: blob:;
+      font-src 'self' https: data:;
       
-      # Frames et mode Preview GTM
-      frame-src 'self' https://www.googletagmanager.com https://tagmanager.google.com https://metrics.stratads.fr;
+      # Frames et mode Preview GTM (On garde les ancêtres pour ton domaine)
+      frame-src 'self' https:;
       frame-ancestors 'self' https://www.stratads.fr https://tagmanager.google.com;
       
       upgrade-insecure-requests;
