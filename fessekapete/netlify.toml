@@ -6,31 +6,18 @@
     Referrer-Policy = "strict-origin-when-cross-origin"
     Permissions-Policy = "geolocation=(), microphone=(), camera=()"
     X-Frame-Options = "SAMEORIGIN"
-
-    # CSP MAX-SOUPLESSE : Autorise tout ce qui est en HTTPS pour débloquer le site
     Content-Security-Policy = """
       default-src 'self' https: data: 'unsafe-inline' 'unsafe-eval';
       base-uri 'self';
       form-action 'self';
       object-src 'none';
-      
-      # Styles : On autorise tout en HTTPS + Inline pour éviter de casser le design
       style-src 'self' 'unsafe-inline' https:;
-      
-      # Scripts : Autorisation large des sources connues + wildcard https pour la flexibilité
       script-src 'self' 'unsafe-inline' 'unsafe-eval' https:;
       script-src-elem 'self' 'unsafe-inline' 'unsafe-eval' https:;
-      
-      # Connexions : Indispensable pour sGTM et les APIs externes
       connect-src 'self' https: wss:;
-      
-      # Images et polices
       img-src 'self' https: data: blob:;
       font-src 'self' https: data:;
-      
-      # Frames et mode Preview GTM (On garde les ancêtres pour ton domaine)
       frame-src 'self' https:;
       frame-ancestors 'self' https://www.stratads.fr https://tagmanager.google.com;
-      
       upgrade-insecure-requests;
     """
