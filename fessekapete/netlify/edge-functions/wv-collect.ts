@@ -3,6 +3,8 @@ import { Context } from "https://edge.netlify.com";
 export default async function (request: Request, context: Context) {
   const SGTM_URL = Deno.env.get("WV_GTM_SERVER_URL")?.replace(/\/$/, "") || "https://metrics.stratads.fr";
   const incoming = new URL(request.url);
+  
+  // Point de collecte vers ton sGTM
   const target = `${SGTM_URL}/g/collect${incoming.search}`;
 
   const headers = new Headers();
@@ -11,8 +13,9 @@ export default async function (request: Request, context: Context) {
     const v = request.headers.get(h);
     if (v) headers.set(h, v);
   }
+  
+  // Indispensable pour éviter que sGTM ne bloque la requête
   headers.delete("host");
-  headers.set("X-Gtm-Server-Preview", "ZW52LTV8N0txdUxsMUE2TUFmT3RlRlhpQkJsQXwxOWRiYjllNGM3MjYxNTQ4OTEwODg=");
 
   try {
     const upstream = await fetch(target, {
@@ -25,5 +28,7 @@ export default async function (request: Request, context: Context) {
       status: upstream.status,
       headers: upstream.headers,
     });
-  } catch { return new Response("", { status: 204 }); }
+  } catch { 
+    return new Response("", { status: 204 }); 
+  }
 }
