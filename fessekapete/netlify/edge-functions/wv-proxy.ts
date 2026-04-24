@@ -13,7 +13,6 @@ export default async function (request: Request, context: Context) {
     headers.set(key, value);
   }
   headers.delete("host");
-  headers.set("X-Gtm-Server-Preview", "ZW52LTV8N0txdUxsMUE2TUFmT3RlRlhpQkJsQXwxOWRiYjllNGM3MjYxNTQ4OTEwODg=");
 
   try {
     const target = `${SGTM_URL}${subPath}${incoming.search}`;
