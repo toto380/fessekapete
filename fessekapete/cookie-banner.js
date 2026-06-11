@@ -1,11 +1,14 @@
 /* ============================================================
    STRATADS — COOKIE BANNER (Rocket SA-26)
    Self-contained: injects CSS + HTML + logic.
-   Include on indexable pages only.
    ============================================================ */
 (function () {
     // Skip if already dismissed this session
     if (sessionStorage.getItem('sa_cookie_dismissed')) return;
+
+    // Initialisation globale et sécurisée du dataLayer et de gtag
+    window.dataLayer = window.dataLayer || [];
+    function gtmBroadcast() { window.dataLayer.push(arguments); }
 
     /* ── CSS ── */
     var css = document.createElement('style');
@@ -95,33 +98,31 @@
 
     // ACTION : CLIC SUR ACCEPTER
     document.getElementById('cb-accept').addEventListener('click', function() {
-        window.dataLayer = window.dataLayer || [];
-        window.dataLayer.push({
-            'event': 'consent_update',
-            'consent_status': 'granted'
-        });
-
-        // Mise à jour du consentement natif Google
-        function gtag(){dataLayer.push(arguments);}
-        gtag('consent', 'update', {
+        // 1. Mise à jour du Consent Mode natif de Google en priorité absolue
+        gtmBroadcast('consent', 'update', {
             'ad_storage': 'granted',
             'analytics_storage': 'granted',
             'ad_user_data': 'granted',
             'ad_personalization': 'granted'
         });
 
-        launch(); // Lance l'animation de la fusée
+        // 2. Push de l'événement personnalisé pour déclencher d'éventuels tags GTM
+        gtmBroadcast({
+            'event': 'consent_update',
+            'consent_status': 'granted'
+        });
+
+        launch(); // Décollage de la fusée
     });
 
     // ACTION : CLIC SUR REFUSER
     document.getElementById('cb-refuse').addEventListener('click', function() {
-        window.dataLayer = window.dataLayer || [];
-        window.dataLayer.push({
+        // Envoi du signal de refus
+        gtmBroadcast({
             'event': 'consent_update',
             'consent_status': 'denied'
         });
-
-        // Le consentement reste sur 'denied' (déjà mis par défaut dans l'index)
+        
         launch();
     });
 })();
